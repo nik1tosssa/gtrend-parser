@@ -7,9 +7,9 @@ def get_keywords_from_file(file_path: str) -> list:
 
     try:
         if extension == ".xlsx":
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path, header=None)
         elif extension == ".csv":
-            df = pd.read_csv(file_path)
+            df = pd.read_csv(file_path, header=None)
         else:
             return []
         keywords = df.iloc[:, 0].dropna().astype(str).tolist()
