@@ -75,7 +75,7 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
         f"🌍 Страна: {user_data['country']}\n"
         f"📅 Период: {user_data['period']}\n"
         f"💾 Файл сохранен: {file_name}\n\n"
-        f"🔍 Сформированная ссылка: {url}\n\n"
+        f"🔍 Сформированная ссылка: {urls}\n\n"
         "Начинаю обработку данных и запуск Selenium..."
     )
 
