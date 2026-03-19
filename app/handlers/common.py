@@ -5,6 +5,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from app.states import ParserSteps
 from app.constants import COUNTRIES
+from app.utils.url_generator import generate_all_urls, generate_url
 
 router = Router()
 
@@ -20,7 +21,6 @@ async def cmd_start(message: types.Message, state: FSMContext):
 @router.message(ParserSteps.choosing_country)
 async def country_chosen(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
-    # TODO: country validation
 
     if message.text.lower() not in COUNTRIES:
         await message.answer(f"\"{message.text}\" не выглядит как валидная страна!"
@@ -35,8 +35,10 @@ async def country_chosen(message: types.Message, state: FSMContext):
 
     keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)
 
-    await message.answer(f"Принято: {message.text} (код - {COUNTRIES.get(message.text.lower())}). Выберите период!", reply_markup=keyboard)
+    await message.answer(f"Принято: {message.text} (код - {COUNTRIES.get(message.text.lower())}). Выберите период!",
+                         reply_markup=keyboard)
     await state.set_state(ParserSteps.choosing_period)
+
 
 @router.message(ParserSteps.choosing_period, F.text.in_(["1 месяц", "3 месяца", "1 год"]))
 async def period_chosen(message: types.Message, state: FSMContext):
@@ -47,6 +49,7 @@ async def period_chosen(message: types.Message, state: FSMContext):
         reply_markup=types.ReplyKeyboardRemove()
     )
     await state.set_state(ParserSteps.uploading_file)
+
 
 @router.message(ParserSteps.uploading_file, F.document)
 async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
@@ -65,13 +68,17 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
 
     user_data = await state.get_data()
 
+    urls = generate_all_urls(file_path = file_path, user_data = user_data)
+
     await message.answer(
         f"✅ Все данные получены!\n"
         f"🌍 Страна: {user_data['country']}\n"
         f"📅 Период: {user_data['period']}\n"
         f"💾 Файл сохранен: {file_name}\n\n"
+        f"🔍 Сформированная ссылка: {url}\n\n"
         "Начинаю обработку данных и запуск Selenium..."
     )
+
 
 @router.message(Command("help"))
 async def cmd_help(message: types.Message):
