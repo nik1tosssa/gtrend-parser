@@ -4,6 +4,7 @@ from aiogram import Router, types, F, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from app.states import ParserSteps
+from app.constants import COUNTRIES
 
 router = Router()
 
@@ -20,6 +21,12 @@ async def cmd_start(message: types.Message, state: FSMContext):
 async def country_chosen(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
     # TODO: country validation
+
+    if message.text.lower() not in COUNTRIES:
+        await message.answer(f"\"{message.text}\" не выглядит как валидная страна!"
+                             f"Введите название страны еще раз!")
+        return
+
     kb = [
         [types.KeyboardButton(text="1 месяц")],
         [types.KeyboardButton(text="3 месяца")],
@@ -28,7 +35,7 @@ async def country_chosen(message: types.Message, state: FSMContext):
 
     keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True, one_time_keyboard=True)
 
-    await message.answer(f"Принято: {message.text}. Выберите период!", reply_markup=keyboard)
+    await message.answer(f"Принято: {message.text} (код - {COUNTRIES.get(message.text.lower())}). Выберите период!", reply_markup=keyboard)
     await state.set_state(ParserSteps.choosing_period)
 
 @router.message(ParserSteps.choosing_period, F.text.in_(["1 месяц", "3 месяца", "1 год"]))
