@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     # Настройка для чтения файла
     model_config = SettingsConfigDict(
         env_file='.env',
-        env_file_encoding='utf-8'
+        env_file_encoding='utf-8',
+        extra='ignore'
     )
 
 # Создаем экземпляр, который будем использовать в боте
