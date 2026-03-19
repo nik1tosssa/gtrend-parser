@@ -4,12 +4,16 @@ from aiogram import Bot, Dispatcher
 from selenium.webdriver.remote.webdriver import create_matches
 from config_reader import config
 
+from app.handlers import common
+
 # set logging
 logging.basicConfig(level=logging.INFO)
 
 async def main():
     bot = Bot(token=config.bot_token.get_secret_value())
     dp = Dispatcher()
+    dp.include_router(common.router)
+
     logging.info(f"Bot started with token: {config.bot_token.get_secret_value()}")
     #
     #
