@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlencode, quote
 from app.utils.file_reader import get_keywords_from_file
 from app.constants import COUNTRIES
@@ -22,13 +23,15 @@ def generate_url(first_keyword: str, second_keyword: str, period: str, geo: str)
     return url
 
 def generate_all_urls(file_path: str, user_data) -> list:
-    keywords = get_keywords_from_file()
+    keywords = get_keywords_from_file(file_path=file_path)
+    logging.info(f"Keywords: {keywords}")
     urls = []
 
     for i in range(len(keywords)):
-        for j in range(i + 1, len(keywords) - 1):
+        for j in range(i + 1, len(keywords)):
             url = generate_url(first_keyword=keywords[i], second_keyword=keywords[j], period=user_data["period"],
                          geo=COUNTRIES.get(user_data.get("country").lower(), "RU"))
+            logging.info(f"Generated: {url}")
             urls.append(url)
     return urls
 
