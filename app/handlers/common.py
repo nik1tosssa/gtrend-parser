@@ -69,6 +69,9 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
     user_data = await state.get_data()
 
     urls = generate_all_urls(file_path = file_path, user_data = user_data)
+    if len(urls) == 0:
+        await message.answer("Ссылки не сформировались, возможно ПЕРВЫЫЙ столбец пустой")
+        return
 
     await message.answer(
         f"✅ Все данные получены!\n"
