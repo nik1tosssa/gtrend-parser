@@ -10,8 +10,8 @@ def get_driver():
     options = Options()
     # Запускаем без графического окна (чтобы не мешало на компе/сервере)
     # Для отладки можешь закомментировать следующую строку, чтобы видеть, что делает бот
-    # options.add_argument("--headless")
 
+    # options.add_argument("--headless")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
