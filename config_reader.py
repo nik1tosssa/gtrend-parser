@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     # Эти переменные Pydantic будет искать в файле .env
     bot_token: SecretStr
     openai_api_key: SecretStr
+    chrome_user_dir_path: SecretStr
 
     # Настройка для чтения файла
     model_config = SettingsConfigDict(
