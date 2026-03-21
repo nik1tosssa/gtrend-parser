@@ -5,7 +5,9 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from app.states import ParserSteps
 from app.constants import COUNTRIES
-from app.utils.url_generator import generate_all_urls, generate_url
+from app.utils.url_generator import generate_all_rows, generate_url
+from app.services.xlsx_creator import get_new_xlsx_file_path
+from aiogram.types import FSInputFile
 
 router = Router()
 
@@ -63,24 +65,42 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
 
     file_path = os.path.join("downloads", f"{message.document.file_unique_id}_{file_name}")
     await bot.download(message.document, destination=file_path)
-    logging.basicConfig(level=logging.INFO)
     logging.info(f"File downloaded to {file_path}")
 
     user_data = await state.get_data()
-
-    urls = generate_all_urls(file_path = file_path, user_data = user_data)
-    if len(urls) == 0:
-        await message.answer("Ссылки не сформировались, возможно ПЕРВЫЫЙ столбец пустой")
-        return
 
     await message.answer(
         f"✅ Все данные получены!\n"
         f"🌍 Страна: {user_data['country']}\n"
         f"📅 Период: {user_data['period']}\n"
         f"💾 Файл сохранен: {file_name}\n\n"
-        f"🔍 Сформированная ссылка: {urls}\n\n"
         "Начинаю обработку данных и запуск Selenium..."
     )
+
+    rows = generate_all_rows(file_path = file_path, user_data = user_data)
+
+
+
+    ready_xlsx = get_new_xlsx_file_path(rows=rows,id=message.document.file_unique_id)
+    file_path = os.path.join("downloads", ready_xlsx)
+    if os.path.exists(file_path):
+        # Создаем объект файла из файловой системы
+        document = FSInputFile(file_path)
+        await message.answer_document(
+            document,
+            caption="Вот ваш отчет Google Trends"
+        )
+        # Опционально: удалить файл после отправки, чтобы не захламлять корень
+        # os.remove(file_path)
+    else:
+        await message.answer("Ошибка: файл не был сформирован.")
+
+
+    if len(rows) == 0:
+        await message.answer("Ссылки не сформировались, возможно ПЕРВЫЫЙ столбец пустой")
+        return
+
+
 
 
 @router.message(Command("help"))
