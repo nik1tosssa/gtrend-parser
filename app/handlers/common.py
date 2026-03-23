@@ -78,11 +78,11 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
     )
 
     rows = generate_all_rows(file_path = file_path, user_data = user_data)
+    ready_xlsx_path = get_new_xlsx_file_path(rows=rows,id=message.document.file_unique_id)
 
 
 
-    ready_xlsx = get_new_xlsx_file_path(rows=rows,id=message.document.file_unique_id)
-    file_path = os.path.join("downloads", ready_xlsx)
+    file_path = os.path.join("", ready_xlsx_path)
     if os.path.exists(file_path):
         # Создаем объект файла из файловой системы
         document = FSInputFile(file_path)
