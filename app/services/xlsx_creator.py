@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def get_new_xlsx_file_path(rows: list, id: str) -> str:
-    file_name = f"data_{id}.xlsx"
+    file_path = os.path.join("readies", f"data_{id}.xlsx")
     all_pairs_data = []  # Список для накопления данных всех пар
 
     for row in rows:
@@ -12,21 +12,22 @@ def get_new_xlsx_file_path(rows: list, id: str) -> str:
         second_keyword = row[1]
         url = row[2]
 
-        # Передаем и URL, и список ключей для корректной работы скрапера
-        current_keywords = [first_keyword, second_keyword]
         scraped_data = scraper.get_google_trends_data(url)
-
-        # Извлекаем данные из словаря results, который возвращает scraper.py
-        # Формируем строку значений, например "45, 100"
-        pair_of_values = scraped_data[0]
-
-        # ВАЖНО: scraper.py пока не возвращает список связанных ключевых слов в results.
-        # Если вы добавите их в результаты скрапера, доставайте их здесь.
-        # Пока поставим заглушку или пустой список.
-        keywords = scraped_data[1]
+        if len(scraped_data) != 0:
+            if len(scraped_data[0]) > 0:
+                pair_of_values = scraped_data[0]
+            else:
+                pair_of_values = 'err'
+            if len(scraped_data[1]) > 0:
+                keywords = scraped_data[1]
+            else:
+                keywords = 'err'
+        else:
+            pair_of_values = 'err'
+            keywords = 'err'
 
         all_pairs_data.append({
-            "fist_keyword": first_keyword,
+            "first_keyword": first_keyword,
             "second_keyword": second_keyword,
             "pair_of_values": pair_of_values,
             "keywords": keywords,
@@ -34,9 +35,9 @@ def get_new_xlsx_file_path(rows: list, id: str) -> str:
 
     # Сохраняем всё сразу после цикла
     df = pd.DataFrame(all_pairs_data)
-    df.to_excel(file_name, index=False)
+    # Вместо df.to_excel(file_path)
+    with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    # В этой точке файл уже точно должен быть на диске
 
-    return file_name
-
-
-
+    return file_path
