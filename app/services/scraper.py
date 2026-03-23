@@ -30,7 +30,7 @@ def get_driver():
         chrome_options.add_argument("--profile-directory=Default")
 
     # Технические флаги для стабильности
-    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--remote-debugging-port=9230")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
@@ -52,16 +52,17 @@ def get_google_trends_data(url: str):
     print("Starting scraper...")
     driver = get_driver()
     results = []
+    # time.sleep(1000)
 
     try:
         print(f"Navigating to comparison: {url}")
         driver.get(url)
-
+        time.sleep(2)
         wait = WebDriverWait(driver, 20)
 
         print("Waiting for chart to render SVG-charts...")
         wait.until(EC.presence_of_element_located((By.TAG_NAME, "svg")))
-        time.sleep(2)
+        time.sleep(3)
 
         print("Scrolling to tables container...")
         try:
@@ -73,20 +74,19 @@ def get_google_trends_data(url: str):
             driver.execute_script("arguments[0].scrollIntoView({behavior: 'auto', block: 'center'});", container)
 
             # Даем время на подгрузку данных (Lazy Load)
+            driver.execute_script("window.scrollTo(0, 2000);")
+
             time.sleep(3)
+
         except Exception as e:
             print(f"Could not scroll to container: {e}")
             # Резервный вариант: скролл на фиксированное расстояние
-            driver.execute_script("window.scrollTo(0, 2000);")
-            time.sleep(2)
-
 
         results.append(get_first_pair_values(driver))
         results.append(get_new_keywords(driver))
 
-
     except Exception as e:
-        driver.save_screenshot("debug_screen.png")  # Посмотрите этот файл, если снова будет ошибка
+        driver.save_screenshot("debug_screen.png")
         logging.error(f"Scraper error: {e}")
     finally:
         time.sleep(1)
