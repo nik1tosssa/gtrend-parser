@@ -33,6 +33,7 @@ def generate_all_rows(file_path: str, user_data) -> list:
                          geo=COUNTRIES.get(user_data.get("country").lower(), "RU"))
             logging.info(f"Generated: {url}")
             rows.append([keywords[i], keywords[j], url])
+
     return rows
 
 
