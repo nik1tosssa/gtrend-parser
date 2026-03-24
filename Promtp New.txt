@@ -1,0 +1,12 @@
+Classify a list of search queries.
+
+Input is a JSON array of strings.
+Process every query independently.
+Return exactly one result per input query in the same order.
+The number of output items must exactly match the number of input queries.
+Do not skip items.
+Do not merge items.
+Do not guess.
+
+Return only JSON in this exact format:
+{"result":[{"status":"exact_brand|brand_with_extra|not_brand|uncertain","clean_brand":"string or null"}]}
