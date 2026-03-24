@@ -2,7 +2,8 @@ import os
 import logging
 import pandas as pd
 
-def get_keywords_from_file(file_path: str) -> list:
+def get_keywords_from_file(session) -> list:
+    file_path = session.start_keywords_file_path
     extension = os.path.splitext(file_path)[1].lower()
 
     try:
@@ -14,6 +15,10 @@ def get_keywords_from_file(file_path: str) -> list:
             return []
         keywords = df.iloc[:, 0].dropna().astype(str).tolist()
         keywords = [word.strip() for word in keywords if word.strip()]
+
+        session.most_popular_keyword = keywords[0]
+        session.second_popular_keyword = keywords[1]
+
         return keywords
 
     except Exception as e:
