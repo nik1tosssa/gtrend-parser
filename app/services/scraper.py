@@ -9,10 +9,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
+from webdriver_manager import drivers
 
 from webdriver_manager.chrome import ChromeDriverManager
+
 from config_reader import config
 
 # Настройка логирования
@@ -22,12 +22,15 @@ logging.basicConfig(level=logging.INFO)
 def get_driver():
     chrome_options = Options()
 
+    user_data =config.chrome_user_dir_path.get_secret_value()
+
     # Загрузка профиля из конфига
     user_data_dir = config.chrome_user_dir_path.get_secret_value()
     if user_data_dir:
         user_data_dir = user_data_dir.strip('"').strip("'")
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
         chrome_options.add_argument("--profile-directory=Default")
+
 
     # Технические флаги для стабильности
     chrome_options.add_argument("--remote-debugging-port=9230")
@@ -66,14 +69,6 @@ def get_google_trends_data(url: str):
 
         print("Scrolling to tables container...")
         try:
-            # Используем более надежный относительный путь к контейнеру таблиц
-            container_xpath = "/html/body/c-wiz/div/div[5]/main/center/c-wiz/div/div[2]/div[1]/div[8]"
-            container = wait.until(EC.presence_of_element_located((By.XPATH, container_xpath)))
-
-            # Скроллим так, чтобы контейнер оказался в центре экрана
-            driver.execute_script("arguments[0].scrollIntoView({behavior: 'auto', block: 'center'});", container)
-
-            # Даем время на подгрузку данных (Lazy Load)
             for _ in range(3):
                 driver.execute_script("window.scrollTo(0, 2000);")
                 time.sleep(random.uniform(1, 3))
@@ -82,7 +77,6 @@ def get_google_trends_data(url: str):
 
         except Exception as e:
             print(f"Could not scroll to container: {e}")
-            # Резервный вариант: скролл на фиксированное расстояние
 
         results.append(get_first_pair_values(driver))
         results.append(get_new_keywords(driver))
@@ -96,25 +90,40 @@ def get_google_trends_data(url: str):
         return results
 
 
-def get_new_keywords(driver) -> list[Any]:
-    # /html/body/c-wiz/div/div[5]/main/center/c-wiz/div/div[2]/div[1]/div[8]/div/div[3]/div
+def get_new_keywords(url: str) -> list[Any]:
+    try:
+        driver = get_driver()
+        driver.get(url)
+        wait = WebDriverWait(driver, 20)
 
-    xpath1 = "/html/body/c-wiz/div/div[5]/main/center/c-wiz/div/div[2]/div[1]/div[8]/div/div[3]/div/div[1]/div[3]/div/div[1]/table/tbody[2]/tr"
-    first_rows = driver.find_elements(By.XPATH, xpath1)
-    first_table_keys = get_keys_from_table(first_rows)
+        print("Waiting for chart to render SVG-charts...")
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "svg")))
+        for _ in range(3):
+            driver.execute_script("window.scrollTo(0, 2000);")
+            time.sleep(random.uniform(1, 3))
 
-    xpath2 = "/html/body/c-wiz/div/div[5]/main/center/c-wiz/div/div[2]/div[1]/div[8]/div/div[3]/div/div[2]/div[3]/div/div[1]/table/tbody[2]/tr"
-    second_rows = driver.find_elements(By.XPATH, xpath2)
-    second_table_keys = get_keys_from_table(second_rows)
+        #         /html/body/div[2]/div[2]/div/md-content/div/div/div[5]/trends-widget/ng-include/widget/div/div/ng-include/div
+        xpath1 = "/html/body/div[2]/div[2]/div/md-content/div/div/div[5]/trends-widget/ng-include/widget/div/div/ng-include/div/*"
+        first_rows = driver.find_elements(By.XPATH, xpath1)
+        first_table_keys = get_keys_from_table(first_rows)
 
-    new_keys = list(set(first_table_keys + second_table_keys))
-    return new_keys
+        xpath2 = "/html/body/div[2]/div[2]/div/md-content/div/div/div[8]/trends-widget/ng-include/widget/div/div/ng-include/div/*"
+        second_rows = driver.find_elements(By.XPATH, xpath2)
+        second_table_keys = get_keys_from_table(second_rows)
+
+        new_keys = list(set(first_table_keys + second_table_keys))
+        driver.quit()
+        return new_keys
+
+    except Exception as e:
+        print(f"Error: {e}")
+
 
 def get_keys_from_table(rows) -> list[Any]:
     keys_from_table = []
     for row in rows:
         try:
-            value = row.find_element(By.XPATH, "./td[2]/div[1]/span[1]").get_attribute("textContent")
+            value = row.find_element(By.XPATH, "./div[1]/ng-include/a/div/div[2]/span").get_attribute("textContent")
             keys_from_table.append(value)
         except Exception as e:
             print(f"Error: {e}")
@@ -122,17 +131,33 @@ def get_keys_from_table(rows) -> list[Any]:
         keys_from_table.append('no new keys')
     return keys_from_table
 
-def get_first_pair_values(driver) -> list[Any]:
-    xpath_svg = "/html/body/c-wiz/div/div[5]/main/center/c-wiz/div/div[2]/div[1]/div[7]/div/div/div[2]//*[local-name()='svg']//*[local-name()='g'][2]//*[local-name()='g'][3]//*[local-name()='text']"
 
-    elements = driver.find_elements(By.XPATH, xpath_svg)
-    values = [elements[1].get_attribute("textContent"), elements[2].get_attribute("textContent")]
+def get_first_pair_values(url) -> list:
+    values = []
+    try:
+        driver = get_driver()
+        driver.get(url)
+        table_xpath = "//div[contains(@aria-label, 'tabular representation')]/table"
 
+        wait = WebDriverWait(driver, 15)
+        table = wait.until(EC.presence_of_element_located((By.XPATH, table_xpath)))
+
+        first_val = table.find_element(By.XPATH, ".//tbody/tr/td[2]").get_attribute("textContent")
+        second_val = table.find_element(By.XPATH, ".//tbody/tr/td[3]").get_attribute("textContent")
+
+        # Очищаем от лишних пробелов и символов
+        values = [first_val.strip(), second_val.strip()]
+
+    except Exception as e:
+        print(f"Ошибка поиска: Элемент не появился или структура изменилась.")
+        # Попробуем сделать скриншот, чтобы понять, что видел Selenium в этот момент
+        driver.save_screenshot("debug_screen.png")
+
+    driver.quit()
     return values
-
 
 # Пример запуска
 if __name__ == "__main__":
-    target_url = "https://trends.google.com/explore?q=vivo%2Chuawei&date=today%203-m&geo=RU"
-    data = get_google_trends_data(target_url)
+    target_url = "https://trends.google.com/trends/explore?q=iphone%2Csamsung&date=today%203-m&geo=BY&cmpt=q&hl=ru"
+    data = get_new_keywords(target_url)
     print(f"Final Result: {data}")
