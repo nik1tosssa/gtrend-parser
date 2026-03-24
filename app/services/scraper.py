@@ -74,7 +74,9 @@ def get_google_trends_data(url: str):
             driver.execute_script("arguments[0].scrollIntoView({behavior: 'auto', block: 'center'});", container)
 
             # Даем время на подгрузку данных (Lazy Load)
-            driver.execute_script("window.scrollTo(0, 2000);")
+            for _ in range(3):
+                driver.execute_script("window.scrollTo(0, 2000);")
+                time.sleep(random.uniform(1, 3))
 
             time.sleep(3)
 
@@ -116,7 +118,8 @@ def get_keys_from_table(rows) -> list[Any]:
             keys_from_table.append(value)
         except Exception as e:
             print(f"Error: {e}")
-
+    if len(keys_from_table) == 0:
+        keys_from_table.append('no new keys')
     return keys_from_table
 
 def get_first_pair_values(driver) -> list[Any]:
