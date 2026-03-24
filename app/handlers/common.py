@@ -5,9 +5,13 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from app.states import ParserSteps
 from app.constants import COUNTRIES
-from app.utils.url_generator import generate_all_rows, generate_url
+from app.utils import file_reader
+from app.utils.url_generator import generate_all_urls, generate_url
+import app.utils.proxy_controller as proxy_controller
 from app.services.xlsx_creator import get_new_xlsx_file_path
 from aiogram.types import FSInputFile
+
+from models import session_model
 
 router = Router()
 
@@ -15,7 +19,7 @@ router = Router()
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await message.answer(f'Привет, {message.from_user.full_name}! /n'
-                         f'Введите страну для парсинга!'
+                         f'Введите страну для парсинга в формате ISO-2(код BY, RU, UA)!'
                          f'')
     await state.set_state(ParserSteps.choosing_country)
 
@@ -24,8 +28,8 @@ async def cmd_start(message: types.Message, state: FSMContext):
 async def country_chosen(message: types.Message, state: FSMContext):
     await state.update_data(country=message.text)
 
-    if message.text.lower() not in COUNTRIES:
-        await message.answer(f"\"{message.text}\" не выглядит как валидная страна!"
+    if message.text.upper() not in COUNTRIES:
+        await message.answer(f"\"{message.text}\" не выглядит как валидный код для страны!"
                              f"Введите название страны еще раз!")
         return
 
@@ -77,12 +81,21 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
         "Начинаю обработку данных и запуск Selenium..."
     )
 
-    rows = generate_all_rows(file_path = file_path, user_data = user_data)
-    ready_xlsx_path = get_new_xlsx_file_path(rows=rows,id=message.document.file_unique_id)
+    proxy_controller.change_proxy_ip()
 
+    session = session_model.Session()
+    session.geo = user_data['country'].upper()
+    session.period = user_data['period']
+    session.start_keywords_file_path = file_path
+    session.start_keywords = file_reader.get_keywords_from_file(session)
+    session.urls = generate_all_urls(session)
+    session.collect_keywords()
+    session.collect_brand_keywords()
+    session.compare_brands()
 
+    file_path = session.create_csv(doc_id=message.document.file_unique_id)
 
-    file_path = os.path.join("", ready_xlsx_path)
+    file_path = os.path.join("", file_path)
     if os.path.exists(file_path):
         # Создаем объект файла из файловой системы
         document = FSInputFile(file_path)
@@ -95,12 +108,9 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
     else:
         await message.answer("Ошибка: файл не был сформирован.")
 
-
-    if len(rows) == 0:
-        await message.answer("Ссылки не сформировались, возможно ПЕРВЫЫЙ столбец пустой")
-        return
-
-
+    # if len(urls) == 0:
+    #     await message.answer("Ссылки не сформировались, возможно ПЕРВЫЫЙ столбец пустой")
+    #     return
 
 
 @router.message(Command("help"))
