@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 def get_driver():
     chrome_options = Options()
 
-    user_data =config.chrome_user_dir_path.get_secret_value()
+    # user_data =config.chrome_user_dir_path.get_secret_value()
 
     # Загрузка профиля из конфига
     user_data_dir = config.chrome_user_dir_path.get_secret_value()
@@ -33,6 +33,7 @@ def get_driver():
 
 
     # Технические флаги для стабильности
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--remote-debugging-port=9230")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -60,12 +61,12 @@ def get_google_trends_data(url: str):
     try:
         print(f"Navigating to comparison: {url}")
         driver.get(url)
-        time.sleep(2)
+        # time.sleep(2)
         wait = WebDriverWait(driver, 20)
 
         print("Waiting for chart to render SVG-charts...")
         wait.until(EC.presence_of_element_located((By.TAG_NAME, "svg")))
-        time.sleep(3)
+        # time.sleep(3)
 
         print("Scrolling to tables container...")
         try:
@@ -73,7 +74,7 @@ def get_google_trends_data(url: str):
                 driver.execute_script("window.scrollTo(0, 2000);")
                 time.sleep(random.uniform(1, 3))
 
-            time.sleep(3)
+            # time.sleep(3)
 
         except Exception as e:
             print(f"Could not scroll to container: {e}")
@@ -87,20 +88,21 @@ def get_google_trends_data(url: str):
     finally:
         time.sleep(1)
         driver.quit()
-        return results
+
+    return results
 
 
-def get_new_keywords(url: str) -> list[Any]:
+def get_new_keywords(driver) -> list[Any]:
     try:
-        driver = get_driver()
-        driver.get(url)
-        wait = WebDriverWait(driver, 20)
-
-        print("Waiting for chart to render SVG-charts...")
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, "svg")))
-        for _ in range(3):
-            driver.execute_script("window.scrollTo(0, 2000);")
-            time.sleep(random.uniform(1, 3))
+        # driver = get_driver()
+        # driver.get(url)
+        # wait = WebDriverWait(driver, 20)
+        #
+        # print("Waiting for chart to render SVG-charts...")
+        # wait.until(EC.presence_of_element_located((By.TAG_NAME, "svg")))
+        # for _ in range(3):
+        #     driver.execute_script("window.scrollTo(0, 2000);")
+        #     time.sleep(random.uniform(1, 3))
 
         #         /html/body/div[2]/div[2]/div/md-content/div/div/div[5]/trends-widget/ng-include/widget/div/div/ng-include/div
         xpath1 = "/html/body/div[2]/div[2]/div/md-content/div/div/div[5]/trends-widget/ng-include/widget/div/div/ng-include/div/*"
@@ -112,7 +114,7 @@ def get_new_keywords(url: str) -> list[Any]:
         second_table_keys = get_keys_from_table(second_rows)
 
         new_keys = list(set(first_table_keys + second_table_keys))
-        driver.quit()
+        # driver.quit()
         return new_keys
 
     except Exception as e:
@@ -132,11 +134,11 @@ def get_keys_from_table(rows) -> list[Any]:
     return keys_from_table
 
 
-def get_first_pair_values(url) -> list:
+def get_first_pair_values(driver) -> list:
     values = []
     try:
-        driver = get_driver()
-        driver.get(url)
+        # driver = get_driver()
+        # driver.get(url)
         table_xpath = "//div[contains(@aria-label, 'tabular representation')]/table"
 
         wait = WebDriverWait(driver, 15)
@@ -153,11 +155,35 @@ def get_first_pair_values(url) -> list:
         # Попробуем сделать скриншот, чтобы понять, что видел Selenium в этот момент
         driver.save_screenshot("debug_screen.png")
 
+    # driver.quit()
+    return values
+
+def get_only_first_pair_values(url) -> list:
+    values = []
+    try:
+        driver = get_driver()
+        driver.get(url)
+        table_xpath = "//div[contains(@aria-label, 'tabular representation')]/table"
+
+        wait = WebDriverWait(driver, 15)
+        table = wait.until(EC.presence_of_element_located((By.XPATH, table_xpath)))
+
+        first_val = table.find_element(By.XPATH, ".//tbody/tr/td[2]").get_attribute("textContent")
+        second_val = table.find_element(By.XPATH, ".//tbody/tr/td[3]").get_attribute("textContent")
+
+        # Очищаем от лишних пробелов и символов
+        values = [first_val.strip(), second_val.strip()]
+    except Exception as e:
+        print(f"Ошибка поиска: Элемент не появился или структура изменилась.")
+        # Попробуем сделать скриншот, чтобы понять, что видел Selenium в этот момент
+        driver.save_screenshot("debug_screen.png")
+
     driver.quit()
     return values
 
 # Пример запуска
 if __name__ == "__main__":
     target_url = "https://trends.google.com/trends/explore?q=iphone%2Csamsung&date=today%203-m&geo=BY&cmpt=q&hl=ru"
-    data = get_new_keywords(target_url)
+
+    data = get_google_trends_data(target_url)
     print(f"Final Result: {data}")
