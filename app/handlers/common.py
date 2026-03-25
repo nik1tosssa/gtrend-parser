@@ -89,7 +89,7 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
     session.start_keywords_file_path = file_path
     session.start_keywords = file_reader.get_keywords_from_file(session)
     session.urls = generate_all_urls(session)
-    session.collect_keywords()
+    session.collect_keywords_and_value_pairs()
     session.collect_brand_keywords()
     session.compare_brands()
 
@@ -101,7 +101,8 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
         document = FSInputFile(file_path)
         await message.answer_document(
             document,
-            caption="Вот ваш отчет Google Trends"
+            caption=f"Вот ваш отчет Google Trends и список брендов!\n"
+                    f"{session.brand_keywords}"
         )
         # Опционально: удалить файл после отправки, чтобы не захламлять корень
         # os.remove(file_path)
