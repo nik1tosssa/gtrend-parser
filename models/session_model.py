@@ -24,11 +24,49 @@ class Session:
     brand_keywords: list[str] = field(default_factory=list)
     pairs_of_values: list[list[str]] = field(default_factory=list)
 
-    def collect_keywords(self):
+    csv_data: list[dict] = field(default_factory=list)
 
-        for url in self.urls:
-            keys = scraper.get_new_keywords(url=url)
-            self.full_scraped_keywords = list(set(keys + self.full_scraped_keywords))
+    def collect_keywords_and_value_pairs(self):
+        for i in range(len(self.start_keywords)):
+            for j in range(i + 1, len(self.start_keywords)):
+                url = generate_url(first_keyword=self.start_keywords[i], second_keyword=self.start_keywords[j],
+                                   geo=self.geo.upper(), period=self.period )
+
+                trends_data = scraper.get_google_trends_data(url=url)
+                keys = trends_data[1]
+                self.full_scraped_keywords = list(set(keys + self.full_scraped_keywords))
+                coef = 0
+                coef_1 = 0
+                coef_2 = 0
+                try:
+                    self.pairs_of_values.append(trends_data[0])
+                except IndexError:
+                    self.pairs_of_values.append(["0","0"])
+                try:
+                    first_value = self.pairs_of_values[i][0]
+                    coef = 100 / int(first_value)
+                    coef_1 = 100
+                except IndexError:
+                    first_value = "0"
+
+                try:
+                    second_value = self.pairs_of_values[i][1]
+                    coef_2 = int(second_value) * coef
+                except IndexError:
+                    second_value = "0"
+
+                self.csv_data.append({
+                    "first_keyword": self.start_keywords[i],
+                    "brand_keyword": self.start_keywords[j],
+                    "first_value": first_value,
+                    "second_value": second_value,
+                    "coef_1": coef_1,
+                    "coef_2": coef_2,
+                })
+
+        # for url in self.urls:
+        #     keys = scraper.get_new_keywords(url=url)
+        #     self.full_scraped_keywords = list(set(keys + self.full_scraped_keywords))
 
     def collect_brand_keywords(self):
         resp = classify_queries(self.full_scraped_keywords)
@@ -43,36 +81,50 @@ class Session:
             url = generate_url(first_keyword=self.most_popular_keyword, second_keyword=brand, geo=self.geo.upper(),
                                period=self.period)
             print(f"Brand: {brand}, URL: {url}")
-            pair = scraper.get_first_pair_values(url)
+            pair = scraper.get_only_first_pair_values(url)
             print(pair)
             self.pairs_of_values.append(pair)
 
     def create_csv(self, doc_id: Optional[str] = "None"):
         file_path = os.path.join("./output", f"output_{doc_id}.csv")
-        csv_data = []
 
+        self.csv_data.append({
+            "first_keyword": "---",
+            "brand_keyword": "---",
+            "first_value": "---",
+            "second_value": "---",
+            "coef_1":"---",
+            "coef_2":"---",
+        })
+
+        coef = 0
+        coef_1 = 0
+        coef_2 = 0
 
         for i in range(len(self.brand_keywords)):
-
             try:
                 first_value = self.pairs_of_values[i][0]
+                coef = 100 / int(first_value)
+                coef_1 = 100
             except IndexError:
                 print(f"IndexError: {i}")
                 first_value = "no value"
-
             try:
                 second_value = self.pairs_of_values[i][1]
+                coef_2 = int(second_value) * coef
             except IndexError:
                 print(f"IndexError: {i}")
                 second_value = "no value"
 
-            csv_data.append({
+            self.csv_data.append({
                 "first_keyword": self.most_popular_keyword,
                 "brand_keyword": self.brand_keywords[i],
                 "first_value": first_value,
                 "second_value": second_value,
+                "coef_1": coef_1,
+                "coef_2": coef_2,
             })
-        df = pd.DataFrame(csv_data, columns=["first_keyword", "brand_keyword", "first_value", "second_value"])
+        df = pd.DataFrame(self.csv_data, columns=["first_keyword", "brand_keyword", "first_value", "second_value"])
         df.to_csv(file_path, index=False, encoding='utf-8-sig', sep=';')
 
         return file_path
