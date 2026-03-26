@@ -4,6 +4,7 @@ from typing import Optional
 
 import os
 import logging
+import app.utils.proxy_controller as proxy_controller
 from app.services import scraper
 from app.services.openai_srv import classify_queries
 from app.utils.url_generator import generate_url
@@ -25,6 +26,7 @@ class Session:
     full_scraped_keywords: list[str] = field(default_factory=list)
     brand_keywords: list[str] = field(default_factory=list)
     pairs_of_values: list[list[str]] = field(default_factory=list)
+    brand_pairs_of_values: list[list[str]] = field(default_factory=list)
 
     csv_data: list[dict] = field(default_factory=list)
 
@@ -32,6 +34,7 @@ class Session:
         count = len(self.start_keywords)
         counter = 0
         i = -1
+        proxy_counter = 0
         for key in self.start_keywords:
             i += 1
             url = generate_url(first_keyword=self.most_popular_keyword, second_keyword=key,
@@ -73,14 +76,14 @@ class Session:
                 "first_value": first_value,
                 "second_value": second_value,
                 "coef_1": coef_1,
-                "coef_2": coef_2,
+                "coef_2": round(coef_2, 2),
             })
             counter += 1
+            proxy_counter += 1
+            if proxy_counter == 30:
+                proxy_controller.change_proxy_ip()
+                proxy_counter = 0
             logging.info(f"Progress: {counter}/{count}")
-
-        # for url in self.urls:
-        #     keys = scraper.get_new_keywords(url=url)
-        #     self.full_scraped_keywords = list(set(keys + self.full_scraped_keywords))
 
     def collect_brand_keywords(self):
         resp = classify_queries(self.full_scraped_keywords)
@@ -91,13 +94,18 @@ class Session:
         print(self.brand_keywords)
 
     def compare_brands(self):
+        proxy_counter = 0
         for brand in self.brand_keywords:
             url = generate_url(first_keyword=self.most_popular_keyword, second_keyword=brand, geo=self.geo.upper(),
                                period=self.period)
             print(f"Brand: {brand}, URL: {url}")
             pair = scraper.get_only_first_pair_values(url)
             print(pair)
-            self.pairs_of_values.append(pair)
+            self.brand_pairs_of_values.append(pair)
+            proxy_counter += 1
+            if proxy_counter == 30:
+                proxy_controller.change_proxy_ip()
+                proxy_counter = 0
 
     def create_csv(self, doc_id: Optional[str] = "None"):
         file_path = os.path.join("./output", f"output_{doc_id}.csv")
@@ -117,7 +125,7 @@ class Session:
 
         for i in range(len(self.brand_keywords)):
             try:
-                first_value = int(self.pairs_of_values[i][0])
+                first_value = int(self.brand_pairs_of_values[i][0])
                 if first_value != 0:
                     coef = 100 / first_value
                 else:
@@ -127,7 +135,7 @@ class Session:
                 print(f"IndexError: {i}")
                 first_value = "no value"
             try:
-                second_value = int(self.pairs_of_values[i][1])
+                second_value = int(self.brand_pairs_of_values[i][1])
                 coef_2 = second_value * coef
             except IndexError:
                 print(f"IndexError: {i}")
@@ -139,7 +147,7 @@ class Session:
                 "first_value": first_value,
                 "second_value": second_value,
                 "coef_1": coef_1,
-                "coef_2": coef_2,
+                "coef_2": round(coef_2, 2),
             })
         df = pd.DataFrame(self.csv_data,
                           columns=["first_keyword", "brand_keyword", "first_value", "second_value", "coef_1", "coef_2"])
