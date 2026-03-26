@@ -66,8 +66,8 @@ class Session:
                 second_value = "0"
 
             self.csv_data.append({
-                "first_keyword": self.start_keywords[i],
-                "brand_keyword": self.start_keywords[j],
+                "first_keyword": self.most_popular_keyword,
+                "brand_keyword": self.key,
                 "first_value": first_value,
                 "second_value": second_value,
                 "coef_1": coef_1,
