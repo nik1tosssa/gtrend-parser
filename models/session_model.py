@@ -1,7 +1,9 @@
+from cmath import inf
 from dataclasses import dataclass, field
 from typing import Optional
 
 import os
+import logging
 from app.services import scraper
 from app.services.openai_srv import classify_queries
 from app.utils.url_generator import generate_url
@@ -27,13 +29,19 @@ class Session:
     csv_data: list[dict] = field(default_factory=list)
 
     def collect_keywords_and_value_pairs(self):
+        count = (len(self.start_keywords) * len(self.start_keywords) - 1) / 2
+        counter = 0
         for i in range(len(self.start_keywords)):
             for j in range(i + 1, len(self.start_keywords)):
                 url = generate_url(first_keyword=self.start_keywords[i], second_keyword=self.start_keywords[j],
-                                   geo=self.geo.upper(), period=self.period )
+                                   geo=self.geo.upper(), period=self.period)
 
                 trends_data = scraper.get_google_trends_data(url=url)
-                keys = trends_data[1]
+                try:
+                    keys = trends_data[1]
+                except IndexError:
+                    keys = []
+
                 self.full_scraped_keywords = list(set(keys + self.full_scraped_keywords))
                 coef = 0
                 coef_1 = 0
@@ -41,17 +49,20 @@ class Session:
                 try:
                     self.pairs_of_values.append(trends_data[0])
                 except IndexError:
-                    self.pairs_of_values.append(["0","0"])
+                    self.pairs_of_values.append(["0", "0"])
                 try:
-                    first_value = self.pairs_of_values[i][0]
-                    coef = 100 / int(first_value)
+                    first_value = int(self.pairs_of_values[i][0])
+                    if first_value != 0:
+                        coef = 100 / first_value
+                    else:
+                        coef = 9999999
                     coef_1 = 100
                 except IndexError:
                     first_value = "0"
 
                 try:
-                    second_value = self.pairs_of_values[i][1]
-                    coef_2 = int(second_value) * coef
+                    second_value = int(self.pairs_of_values[i][1])
+                    coef_2 = second_value * coef
                 except IndexError:
                     second_value = "0"
 
@@ -63,6 +74,8 @@ class Session:
                     "coef_1": coef_1,
                     "coef_2": coef_2,
                 })
+                counter += 1
+                logging.info(f"Progress: {counter}/{count}")
 
         # for url in self.urls:
         #     keys = scraper.get_new_keywords(url=url)
@@ -93,8 +106,8 @@ class Session:
             "brand_keyword": "---",
             "first_value": "---",
             "second_value": "---",
-            "coef_1":"---",
-            "coef_2":"---",
+            "coef_1": "---",
+            "coef_2": "---",
         })
 
         coef = 0
@@ -103,15 +116,18 @@ class Session:
 
         for i in range(len(self.brand_keywords)):
             try:
-                first_value = self.pairs_of_values[i][0]
-                coef = 100 / int(first_value)
+                first_value = int(self.pairs_of_values[i][0])
+                if first_value != 0:
+                    coef = 100 / first_value
+                else:
+                    coef = 9999999
                 coef_1 = 100
             except IndexError:
                 print(f"IndexError: {i}")
                 first_value = "no value"
             try:
-                second_value = self.pairs_of_values[i][1]
-                coef_2 = int(second_value) * coef
+                second_value = int(self.pairs_of_values[i][1])
+                coef_2 = second_value * coef
             except IndexError:
                 print(f"IndexError: {i}")
                 second_value = "no value"
