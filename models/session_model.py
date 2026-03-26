@@ -32,7 +32,7 @@ class Session:
         count = len(self.start_keywords)
         counter = 0
         for key in self.start_keywords:
-            url = generate_url(first_keyword=self.most_popular_keyword, second_keyword=self.key,
+            url = generate_url(first_keyword=self.most_popular_keyword, second_keyword=key,
                                geo=self.geo.upper(), period=self.period)
 
             trends_data = scraper.get_google_trends_data(url=url)
