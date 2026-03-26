@@ -69,7 +69,7 @@ class Session:
 
             self.csv_data.append({
                 "first_keyword": self.most_popular_keyword,
-                "brand_keyword": self.key,
+                "brand_keyword": key,
                 "first_value": first_value,
                 "second_value": second_value,
                 "coef_1": coef_1,
