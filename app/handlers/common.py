@@ -83,15 +83,18 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
 
     proxy_controller.change_proxy_ip()
 
-    session = session_model.Session()
-    session.geo = user_data['country'].upper()
-    session.period = user_data['period']
-    session.start_keywords_file_path = file_path
-    session.start_keywords = file_reader.get_keywords_from_file(session)
-    session.urls = generate_all_urls(session)
-    session.collect_keywords_and_value_pairs()
-    session.collect_brand_keywords()
-    session.compare_brands()
+    try:
+        session = session_model.Session()
+        session.geo = user_data['country'].upper()
+        session.period = user_data['period']
+        session.start_keywords_file_path = file_path
+        session.start_keywords = file_reader.get_keywords_from_file(session)
+        session.urls = generate_all_urls(session)
+        session.collect_keywords_and_value_pairs()
+        session.collect_brand_keywords()
+        session.compare_brands()
+    except Exception as e:
+        logging.error(f"error: {e}")
 
     file_path = session.create_csv(doc_id=message.document.file_unique_id)
 
