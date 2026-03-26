@@ -123,7 +123,7 @@ def get_new_keywords(driver) -> list[Any]:
 
 def get_keys_from_table(rows) -> list[Any]:
     keys_from_table = []
-    for row in rows:
+    for row in rows[::-1]:
         try:
             value = row.find_element(By.XPATH, "./div[1]/ng-include/a/div/div[2]/span").get_attribute("textContent")
             keys_from_table.append(value)
