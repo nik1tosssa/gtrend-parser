@@ -6,15 +6,12 @@ client = OpenAI(api_key=config.openai_api_key.get_secret_value())
 
 
 def classify_queries(queries: list):
-    # Убедитесь, что содержимое content — это строка (json.dumps для списка)
     user_content = json.dumps(queries)
 
     try:
         response = client.chat.completions.create(
-            model="gpt-5-mini",  # или gpt-4-turbo-preview
-            # Исправление для response_format:
+            model="gpt-5-mini",
             response_format={"type": "json_object"},
-            # Исправление для messages:
             messages=[
                 {
                     "role": "system",
@@ -40,7 +37,6 @@ def classify_queries(queries: list):
                 }
             ]
         )
-        # Преобразование ответа из строки в объект Python
         res = json.loads(response.choices[0].message.content)
         print(res)
         return res
