@@ -31,7 +31,9 @@ class Session:
     def collect_keywords_and_value_pairs(self):
         count = len(self.start_keywords)
         counter = 0
+        i = 0
         for key in self.start_keywords:
+            i += 1
             url = generate_url(first_keyword=self.most_popular_keyword, second_keyword=key,
                                geo=self.geo.upper(), period=self.period)
 
