@@ -18,7 +18,7 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
-    await message.answer(f'Привет, {message.from_user.full_name}! /n'
+    await message.answer(f'Привет, {message.from_user.full_name}! \n'
                          f'Введите страну для парсинга в формате ISO-2(код BY, RU, UA)!'
                          f'')
     await state.set_state(ParserSteps.choosing_country)
@@ -95,14 +95,22 @@ async def file_uploaded(message: types.Message, state: FSMContext, bot: Bot):
 
     file_path = session.create_csv(doc_id=message.document.file_unique_id)
 
+    brands_as_str = ""
+    for i in range(len(session.brand_keywords)):
+        try:
+            val = session.brand_pairs_of_values[i][1]
+        except IndexError:
+            val = "0"
+        brands_as_str += f"{session.brand_keywords[i]} - {val}\n"
+
     file_path = os.path.join("", file_path)
     if os.path.exists(file_path):
         # Создаем объект файла из файловой системы
         document = FSInputFile(file_path)
         await message.answer_document(
             document,
-            caption=f"Вот ваш отчет Google Trends и список брендов!\n"
-                    f"{session.brand_keywords}"
+            caption=f"Вот ваш отчет Google Trends и список брендов!\n\n"
+                    f"{brands_as_str}"
         )
         # Опционально: удалить файл после отправки, чтобы не захламлять корень
         # os.remove(file_path)
