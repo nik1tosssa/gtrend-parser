@@ -31,7 +31,7 @@ class Session:
     def collect_keywords_and_value_pairs(self):
         count = len(self.start_keywords)
         counter = 0
-        i = 0
+        i = -1
         for key in self.start_keywords:
             i += 1
             url = generate_url(first_keyword=self.most_popular_keyword, second_keyword=key,
@@ -141,7 +141,8 @@ class Session:
                 "coef_1": coef_1,
                 "coef_2": coef_2,
             })
-        df = pd.DataFrame(self.csv_data, columns=["first_keyword", "brand_keyword", "first_value", "second_value"])
+        df = pd.DataFrame(self.csv_data,
+                          columns=["first_keyword", "brand_keyword", "first_value", "second_value", "coef_1", "coef_2"])
         df.to_csv(file_path, index=False, encoding='utf-8-sig', sep=';')
 
         return file_path
