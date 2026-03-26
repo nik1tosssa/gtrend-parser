@@ -57,6 +57,7 @@ def get_google_trends_data(url: str):
     driver = get_driver()
     results = []
     # time.sleep(1000)
+    time.sleep(random.uniform(1, 3))
 
     try:
         print(f"Navigating to comparison: {url}")
