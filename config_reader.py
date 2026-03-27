@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     bot_token: SecretStr
     openai_api_key: SecretStr
     chrome_user_dir_path: SecretStr
+    debug: SecretStr
+    set_run: SecretStr
 
     # Настройка для чтения файла
     model_config = SettingsConfigDict(

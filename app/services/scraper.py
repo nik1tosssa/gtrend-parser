@@ -33,7 +33,8 @@ def get_driver():
 
 
     # Технические флаги для стабильности
-    chrome_options.add_argument("--headless")
+    if config.debug.get_secret_value() != "True":
+        chrome_options.add_argument("--headless")
     chrome_options.add_argument("--remote-debugging-port=9230")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -56,7 +57,7 @@ def get_google_trends_data(url: str):
     print("Starting scraper...")
     driver = get_driver()
     results = []
-    # time.sleep(1000)
+    if config.set_run == "True": time.sleep(1000)
     time.sleep(random.uniform(1, 3))
 
     try:
